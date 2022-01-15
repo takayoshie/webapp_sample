@@ -1,0 +1,48 @@
+<html>
+<head>
+<meta charset="utf-8"/>
+<style type="text/css">
+<!--
+.search_container input[type="text"]{
+  border: 1px solid #999;
+  padding: 3px 10px;
+  border-radius: 3px;
+  height: 2.2em;
+  overflow: hidden;
+}
+.search_container input[type="text"]:focus {
+  outline: 0;
+  height: 2.0em;
+}
+.search_container input[type="submit"]{
+  cursor: pointer;
+  font-family: FontAwesome;
+  font-size: 1.2em;
+  border: none;
+  background: #3879D9;
+  border-radius: 3px;
+  color: #fff;
+  outline : none;
+  width: 3.5em;
+  height: 1.9em;
+  display: inline-block;
+  vertical-align: middle;
+}
+-->
+</style>
+<title>Event search</title>
+</head>
+<body>
+
+<link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<h1>書籍検索</h1>
+地域名（一部でも可）と，キーワードを入れて，検索してください．
+
+<form method="post" action="./search.py" class="search_container">
+  <input type="text" name="keyword" size="25" placeholder="キーワード">
+  <input type="submit" value="&#xf002">
+</form>
+
+</body>
+</html>
+

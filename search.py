@@ -4,9 +4,8 @@
 def get_http_resp(url, param):
     import json, requests
     import xmltodict
-    res = requests.get(url, params=param)
+    res = requests.get(url)
     return xmltodict.parse(res.text)
-#    return json.loads(res.text)
 
 def get_data(field):
     import re
@@ -15,28 +14,18 @@ def get_data(field):
     p = re.compile(r"<[^>]*?>")
     return p.sub("", field).replace('\u3000', '').replace('\n', '')
 
-
-https://iss.ndl.go.jp/api/sru?operation=searchRetrieve&maximumRecords=10&query=title%3d%22%E5%88%86%E6%95%A3%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%22
-https://iss.ndl.go.jp/api/sru?operation=searchRetrieve&maximumRecords=100&query=title%3d%22%E5%88%86%E6%95%A3%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%22
-
-
 def national_lib(keyword):
-    url = "https://iss.ndl.go.jp/api/sru?query="
-    #operation=searchRetrieve&maximumRecords=10&query=title%3d%22 %E6%A1%9C %22”
+    url = "https://iss.ndl.go.jp/api/sru?operation=searchRetrieve&query=title=\"" + keyword + "\" AND mediatype=1 AND sortBy=\"issued_date/sort.descending\""
     param = {"title": "\"" + keyword +"\""}
     response = get_http_resp(url, param)
-    events = []
-    print(response)
-    exit()
-    for event in response["events"]:
+    books = []
+    for record in response["searchRetrieveResponse"]["records"]["record"]:
+        import xmltodict
+        recordData = xmltodict.parse(record["recordData"])
         e = {}
-        e["url"] = get_data(event["event_url"])
-        e["title"] = get_data(event["title"])
-        e["start"] = get_data(event["started_at"])
-        e["address"] = get_data(event["address"])
-        e["description"] = get_data(event["description"])
-        events.append(e)
-    return events
+        e["title"] = get_data(recordData["srw_dc:dc"]["dc:title"])
+        books.append(e)
+    return books
 
 def doorkeeper(keywords):
     url = "https://api.doorkeeper.jp/events?"
@@ -79,32 +68,27 @@ def save_db(ipaddr, pref, keyword):
         conn.commit()
         conn.close()
 
-results = national_lib("分散システム")
-exit()
-
 import os, sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 if ( os.environ['REQUEST_METHOD'] == "POST" ):
     import requests, urllib
     form = urllib.parse.parse_qs(sys.stdin.read())
-    keyword = form['keyword'] if 'keyword' in form else []
-    results = national_lib(keyword)
-    results.extend(doorkeeper(keyword))
+    keywords = form['keyword'] if 'keyword' in form else []
+    results = national_lib(keywords[0])
     import datetime
-    results = sorted(results, key=lambda x:int(datetime.datetime.strptime(x["start"][:10], "%Y-%m-%d").timestamp()))
     print('Content-Type:text/html\n')
     print("<html lang=\"ja\">")
     print("<meta charset=\"utf-8\"/>")
     print_header()
     print("<body>")
     print("<table id=\"res-table\"  class=\"table table-bordered\">")
-    print("<thead><tr><th>#</th><th>日付</th><th>名称</th><th>内容（100文字）</th><th>場所</th><th>Web</th></tr></thead>")
+    print("<thead><tr><th>#</th><th>名称</th></tr></thead>")
     print("<tbody>")
     cnt = 0
     for result in results:
         cnt += 1
-        print("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><a href=%s>[Link]</a></td></tr>" % (cnt, result["start"][:10], result['title'], result['description'][:100], result['address'], result['url']))
+        print("<tr><td>%s</td><td>%s</td></tr>" % (cnt, result['title']))
     print("</tbody></table>")
     print("</body></html>") 
-    save_db(os.environ['REMOTE_ADDR'], keyword)
+    save_db(os.environ['REMOTE_ADDR'], keywords)
 
